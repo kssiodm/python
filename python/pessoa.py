@@ -20,7 +20,7 @@ class Pessoa(object):
 pessoa = Pessoa(nome="Fulano", idade=25, peso=70, altura=1.75, etnia="Caucasiano")
 pessoa.apresentar()
 pessoa.andar(1000)
-pessoa.cozinhar("bolo de chocolate com baunilha")
+pessoa.cozinhar("bolo de chocolate com baunilha com chocolate")
 
 
 
