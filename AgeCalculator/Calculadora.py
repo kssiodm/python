@@ -42,7 +42,7 @@ def getInputs():
     humano = Pessoa(campoNome.get(), dt(int(campoAno.get()), int(campoMes.get()), int(campoDia.get())))
 
     limpar()
-    md.showinfo(title = 'Resuldato', message = humano.idade)
+    md.showinfo(title = 'Resultado', message = humano.idade())
 
 #metodo limpar
 def limpar() -> None:
@@ -59,7 +59,7 @@ def limpar() -> None:
 
 #Criar botões 
 
-bCalcular = tk.Button(janela,text = 'OK', width = 10, font= ('courier new', 14 ))
+bCalcular = tk.Button(janela,text = 'OK', command = getInputs, width = 10, font= ('courier new', 14 ))
 bCalcular.grid(column= 1, row= 5)
 bLimpar  = tk.Button(janela,text = 'Limpar',command = limpar, width = 10, font= ('courier new', 14 ))
 bLimpar.grid(column= 0, row= 5)
