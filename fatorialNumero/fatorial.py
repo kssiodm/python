@@ -10,13 +10,19 @@ def limpar() -> None:
     lblResultado['text'] = 'calculando...'
 
 def fatorial():
-    numero = int(campoNumero.get())
 
-    resultado=1
-    for n in range(1,numero +1):
-        resultado *= n
+    try:
+        numero = int(campoNumero.get())
 
-    lblResultado['text'] = f'o fatorial de {campoNumero}! = {resultado} '
+        resultado=1
+        for n in range(1,numero +1):
+            resultado *= n
+
+        lblResultado['text'] = f'o fatorial de {numero}! = {resultado} '
+    except ValueError:
+        lblResultado['text'] = 'Digite um numero para executar o fatorial '
+
+
 
 lblNumero = tk.Label(janela, text = 'informe o numero fatorial:', font= ('courier new', 14, 'italic'))
 lblNumero.place(x = 20, y = 20)
