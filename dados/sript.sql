@@ -36,3 +36,82 @@ SELECT nome,email from funcionarios WHERE sexo LIKE 'Feminino' AND departamento 
 SELECT idFuncionario,nome,email FROM funcionarios WHERE departamento LIKE 'Roupas';
 
 SELECT nome FROM funcionarios WHERE sexo LIKE 'Masculino' AND departamento LIKE 'Jardim';
+
+
+-- trabalhando com a database comercio
+-- exercicio -1
+SELECT 
+    COUNT(sexo_cliente) AS 'Qtd.', sexo_cliente
+FROM 
+    cliente
+GROUP 
+    BY sexo_cliente;
+
+-- exercicio -2
+SELECT
+    C.id_cliente AS registro,
+    C.nome_cliente AS cliete,
+    C.sexo_cliente AS sexo,
+    C.email_cliente AS 'e-mail contato'
+from
+    cliente C
+INNER JOIN
+    endereco E
+ON 
+    C.id_cliente = E.idcliente
+INNER JOIN
+    telefone T
+ON
+    C.id_cliente = T.idcliente
+WHERE
+    sexo_cliente LIKE 'F'
+AND
+    E.bairro LIKE 'centro'
+AND
+    E.cidade LIKE 'RIO DE JANEIRO'
+AND
+    T.tipo_telefone <> 'CEL';
+
+-- exercicio -3
+
+SELECT 
+    C.nome_cliente, C.email_cliente, T.numero_telefone
+FROM
+    cliente C
+INNER JOIN
+    endereco E
+ON
+    C.id_cliente = E.idcliente
+INNER JOIN
+    telefone T
+ON
+    C.id_cliente = T.idcliente
+WHERE 
+    T.tipo_telefone LIKE 'CEL'
+AND 
+    C.email_cliente <> 'NULL'
+AND 
+    E.estado LIKE 'RJ';
+
+-- exercicio -4
+
+SELECT 
+    C.nome_cliente, C.email_cliente, T.numero_telefone
+FROM
+    cliente C
+INNER JOIN
+    endereco E
+ON
+    C.id_cliente = E.idcliente
+INNER JOIN
+    telefone T
+ON
+    C.id_cliente = T.idcliente
+WHERE
+    C.sexo_cliente LIKE 'F'
+AND
+    T.tipo_telefone LIKE 'CEL'
+AND
+    E.estado LIKE 'RJ'
+AND 
+    C.email_cliente <> 'NULL';
