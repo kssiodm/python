@@ -1,0 +1,317 @@
+import matplotlib.pyplot as plt
+from datetime import datetime
+import os
+
+# Configuração para matplotlib em português
+plt.rcParams['figure.figsize'] = (12, 8)
+plt.rcParams['font.size'] = 10
+
+def ler_dados_csv(nome_arquivo):
+    """
+    Lê o arquivo CSV e retorna uma lista de dicionários com os dados.
+    Ignora a primeira linha (cabeçalho) e trata valores inválidos.
+    """
+    dados = []
+    
+    try:
+        with open(nome_arquivo, 'r', encoding='utf-8') as arquivo:
+            # Pula o cabeçalho
+            next(arquivo)
+            
+            for linha_num, linha in enumerate(arquivo, start=2):
+                campos = linha.strip().split(',')
+                if len(campos) >= 8:  # Verifica se tem todos os campos
+                    try:
+                        # Converte valores numéricos, tratando valores inválidos
+                        data = campos[0].strip()
+                        precip = float(campos[1]) if campos[1].strip() != '' else None
+                        temp_max = float(campos[2]) if campos[2].strip() != '' else None
+                        temp_min = float(campos[3]) if campos[3].strip() != '' else None
+                        horas_insol = float(campos[4]) if campos[4].strip() != '' else None
+                        temp_media = float(campos[5]) if campos[5].strip() != '' else None
+                        um_relativa = float(campos[6]) if campos[6].strip() != '' else None
+                        vel_vento = float(campos[7]) if campos[7].strip() != '' else None
+                        
+                        dados.append({
+                            'data': data,
+                            'precip': precip,
+                            'temp_max': temp_max,
+                            'temp_min': temp_min,
+                            'horas_insol': horas_insol,
+                            'temp_media': temp_media,
+                            'um_relativa': um_relativa,
+                            'vel_vento': vel_vento
+                        })
+                    except ValueError:
+                        # Ignora linhas com dados corrompidos
+                        print(f"Linha {linha_num} ignorada devido a dados inválidos")
+                        continue
+        
+        print(f"✅ Carregados {len(dados)} registros com sucesso!")
+        return dados
+    
+    except FileNotFoundError:
+        print(f"❌ Arquivo '{nome_arquivo}' não encontrado na pasta atual!")
+        return []
+    except Exception as e:
+        print(f"❌ Erro ao ler arquivo: {e}")
+        return []
+
+def validar_mes(mes_str):
+    """Valida se o mês está entre 1 e 12"""
+    try:
+        mes = int(mes_str)
+        return 1 <= mes <= 12, mes
+    except:
+        return False, None
+
+def validar_data(data_str, ano_inicial, ano_final):
+    """Valida se a data está no formato correto e dentro do intervalo"""
+    try:
+        dia, mes, ano = map(int, data_str.split('/'))
+        return (1 <= dia <= 31 and 1 <= mes <= 12 and 
+                ano_inicial <= ano <= ano_final), f"{dia:02d}/{mes:02d}/{ano}"
+    except:
+        return False, None
+
+def extrair_mes_ano(data_str):
+    """Extrai mês e ano da data no formato DD/MM/YYYY"""
+    try:
+        _, mes, ano = data_str.split('/')
+        return int(mes), int(ano)
+    except:
+        return None, None
+
+def visualizar_intervalo(dados, mes_ini, ano_ini, mes_fim, ano_fim, tipo_dados):
+    """
+    Visualiza dados no intervalo especificado conforme tipo selecionado
+    """
+    print("\n" + "="*80)
+    print(f"📊 DADOS DE {mes_ini:02d}/{ano_ini} a {mes_fim:02d}/{ano_fim}")
+    print("="*80)
+    
+    if tipo_dados == 1:
+        print(f"{'Data':<12} {'Precip(mm)':<10} {'TªMax(°C)':<10} {'TªMin(°C)':<10} "
+                f"{'Umidade(%)':<10} {'Vento(m/s)':<10}")
+        print("-"*80)
+    elif tipo_dados == 2:
+        print(f"{'Data':<12} {'Precipitação(mm)':<20}")
+        print("-"*35)
+    elif tipo_dados == 3:
+        print(f"{'Data':<12} {'TªMáxima(°C)':<12} {'TªMínima(°C)':<12}")
+        print("-"*40)
+    else:  # tipo 4
+        print(f"{'Data':<12} {'Umidade(%)':<12} {'Vento(m/s)':<12}")
+        print("-"*40)
+    
+    dados_filtrados = []
+    for registro in dados:
+        mes_reg, ano_reg = extrair_mes_ano(registro['data'])
+        if mes_reg and ano_reg:
+            if (ano_ini <= ano_reg <= ano_fim and 
+                (mes_ini <= mes_reg <= mes_fim or ano_ini < ano_reg < ano_fim or 
+                (ano_reg == ano_ini and mes_reg >= mes_ini) or 
+                (ano_reg == ano_fim and mes_reg <= mes_fim))):
+                
+                dados_filtrados.append(registro)
+    
+    for reg in dados_filtrados:
+        data = reg['data']
+        if tipo_dados == 1:
+            print(f"{data:<12} {reg['precip']:<10.1f} {reg['temp_max']:<10.1f} "
+                f"{reg['temp_min']:<10.1f} {reg['um_relativa']:<10.1f} {reg['vel_vento']:<10.1f}")
+        elif tipo_dados == 2:
+            print(f"{data:<12} {reg['precip']:<20.1f}")
+        elif tipo_dados == 3:
+            print(f"{data:<12} {reg['temp_max']:<12.1f} {reg['temp_min']:<12.1f}")
+        else:
+            print(f"{data:<12} {reg['um_relativa']:<12.1f} {reg['vel_vento']:<12.1f}")
+    
+    print(f"\n📈 Total de registros exibidos: {len(dados_filtrados)}")
+    print("="*80)
+
+def mes_mais_chuvoso(dados):
+    """
+    Encontra o mês/ano com maior precipitação usando dicionário
+    """
+    precip_por_mes = {}
+    
+    for registro in dados:
+        if registro['precip'] is not None:
+            mes, ano = extrair_mes_ano(registro['data'])
+            if mes and ano:
+                chave = f"{mes:02d}/{ano}"
+                if chave not in precip_por_mes:
+                    precip_por_mes[chave] = 0
+                precip_por_mes[chave] += registro['precip']
+    
+    if precip_por_mes:
+        mes_chuvoso = max(precip_por_mes.items(), key=lambda x: x[1])
+        return mes_chuvoso[0], mes_chuvoso[1]
+    return None, 0
+
+def medias_temp_min_mes(dados, mes, ano_inicial=2006, ano_final=2016):
+    """
+    Calcula médias de temperatura mínima por ano para um mês específico
+    Retorna dicionário com chaves 'mes_ano': media_temp_min
+    """
+    medias = {}
+    
+    for ano in range(ano_inicial, ano_final + 1):
+        temps_min = []
+        for registro in dados:
+            if registro['temp_min'] is not None:
+                m, a = extrair_mes_ano(registro['data'])
+                if m == mes and a == ano:
+                    temps_min.append(registro['temp_min'])
+        
+        if temps_min:
+            chave = f"{mes:02d}{ano}"
+            medias[chave] = sum(temps_min) / len(temps_min)
+    
+    return medias
+
+def media_geral_temp_min(medias):
+    """Calcula a média geral das temperaturas mínimas do dicionário"""
+    if not medias:
+        return 0
+    return sum(medias.values()) / len(medias)
+
+def grafico_medias_temp_min(medias, mes):
+    """
+    Gera gráfico de barras com as médias de temperatura mínima
+    """
+    if not medias:
+        print("❌ Não há dados para gerar o gráfico!")
+        return
+    
+    anos = [chave[-4:] for chave in medias.keys()]
+    temps = list(medias.values())
+    
+    plt.figure(figsize=(12, 8))
+    bars = plt.bar(anos, temps, color='skyblue', edgecolor='navy', alpha=0.8)
+    
+    # Configurações do gráfico
+    plt.title(f'Média da Temperatura Mínima - {mes}/2006-2016 (Porto Alegre/RS)', 
+                fontsize=16, fontweight='bold', pad=20)
+    plt.xlabel('Ano', fontsize=12, fontweight='bold')
+    plt.ylabel('Temperatura Mínima Média (°C)', fontsize=12, fontweight='bold')
+    plt.grid(axis='y', alpha=0.3, linestyle='--')
+    
+    # Adiciona valores nas barras
+    for bar, temp in zip(bars, temps):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
+                f'{temp:.1f}°C', ha='center', va='bottom', fontweight='bold')
+    
+    plt.ylim(0, max(temps)*1.15)
+    plt.tight_layout()
+    plt.show()
+
+def main():
+    print("🌤️ ANÁLISE CLIMATOLÓGICA - PORTO ALEGRE/RS (1961-2016)")
+    print("="*60)
+    
+    # Carrega os dados
+    dados = ler_dados_csv('Anexo_Arquivo_Dados_Projeto_Logica_e_programacao_de_computadores.csv')
+    if not dados:
+        return
+    
+    while True:
+        print("\n📋 MENU PRINCIPAL")
+        print("1) Visualizar intervalo de dados")
+        print("2) Mês mais chuvoso")
+        print("3) Médias temp. mínima (mês específico, 2006-2016)")
+        print("4) Gráfico médias temp. mínima")
+        print("5) Média geral temp. mínima (mês específico)")
+        print("0) Sair")
+        
+        opcao = input("\nEscolha uma opção: ").strip()
+        
+        if opcao == '0':
+            print("👋 Até logo!")
+            break
+        
+        elif opcao == '1':
+            print("\n📅 INTERVALO DE DATAS (formato: MM/AAAA)")
+            mes_ini = input("Mês inicial (1-12): ").strip()
+            ano_ini = input("Ano inicial (1961-2016): ").strip()
+            mes_fim = input("Mês final (1-12): ").strip()
+            ano_fim = input("Ano final (1961-2016): ").strip()
+            
+            valido, mes_ini = validar_mes(mes_ini)
+            if not valido:
+                print("❌ Mês inválido!")
+                continue
+            valido, mes_fim = validar_mes(mes_fim)
+            if not valido:
+                print("❌ Mês inválido!")
+                continue
+            
+            try:
+                ano_ini, ano_fim = int(ano_ini), int(ano_fim)
+                if not (1961 <= ano_ini <= 2016 and 1961 <= ano_fim <= 2016):
+                    print("❌ Anos devem estar entre 1961 e 2016!")
+                    continue
+            except:
+                print("❌ Ano inválido!")
+                continue
+            
+            print("\nTipo de dados:")
+            print("1) Todos | 2) Precipitação | 3) Temperatura | 4) Umidade/Vento")
+            tipo = input("Escolha (1-4): ").strip()
+            
+            if tipo in ['1', '2', '3', '4']:
+                visualizar_intervalo(dados, mes_ini, ano_ini, mes_fim, ano_fim, int(tipo))
+            else:
+                print("❌ Opção inválida!")
+        
+        elif opcao == '2':
+            mes, precip = mes_mais_chuvoso(dados)
+            if mes:
+                print(f"\n🌧️  MÊS MAIS CHUVOSO: {mes} - Precipitação: {precip:.1f} mm")
+            else:
+                print("❌ Nenhum dado de precipitação encontrado!")
+        
+        elif opcao == '3':
+            mes_str = input("Digite o mês (1-12): ").strip()
+            valido, mes = validar_mes(mes_str)
+            if valido:
+                medias = medias_temp_min_mes(dados, mes)
+                print(f"\n📊 MÉDIAS TEMP. MÍNIMA - Mês {mes:02d}/2006-2016")
+                print("-"*50)
+                for chave, media in medias.items():
+                    print(f"{chave}: {media:.1f}°C")
+                print(f"\nTotal de anos com dados: {len(medias)}")
+            else:
+                print("❌ Mês inválido!")
+        
+        elif opcao == '4':
+            mes_str = input("Digite o mês (1-12): ").strip()
+            valido, mes = validar_mes(mes_str)
+            if valido:
+                medias = medias_temp_min_mes(dados, mes)
+                if medias:
+                    grafico_medias_temp_min(medias, mes)
+                else:
+                    print("❌ Nenhum dado encontrado para este mês!")
+            else:
+                print("❌ Mês inválido!")
+        
+        elif opcao == '5':
+            mes_str = input("Digite o mês (1-12): ").strip()
+            valido, mes = validar_mes(mes_str)
+            if valido:
+                medias = medias_temp_min_mes(dados, mes)
+                media_geral = media_geral_temp_min(medias)
+                print(f"\n🌡️  MÉDIA GERAL TEMP. MÍNIMA - Mês {mes:02d}/2006-2016")
+                print(f"📈 {media_geral:.2f}°C")
+            else:
+                print("❌ Mês inválido!")
+        
+        else:
+            print("❌ Opção inválida!")
+        
+        input("\nPressione Enter para continuar...")
+
+if __name__ == "__main__":
+    main()
